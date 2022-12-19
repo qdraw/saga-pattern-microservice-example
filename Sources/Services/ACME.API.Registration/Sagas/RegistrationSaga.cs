@@ -17,7 +17,7 @@ namespace ACME.API.Registration.Sagas
 {
     public class RegistrationSaga : Saga<RegistrationData>, IMessageHandler<ApproveRegistrationCommand>, 
         IMessageHandler<CreateRegistrationCommand>,
-        IMessageHandler<SubmitRegistrationCommand>, IMessageHandler<UserCreatedEvent>, IMessageHandler<UserFailedEvent> //, IMessageHandler<CompanyFailedEvent>
+        IMessageHandler<SubmitRegistrationCommand>, IMessageHandler<UserCreatedEvent>, IMessageHandler<UserFailedEvent>
     {
         
         private readonly ILogger<RegistrationSaga> _logger;
@@ -58,6 +58,7 @@ namespace ACME.API.Registration.Sagas
         {
             _logger.LogInformation($"[{nameof(RegistrationSaga)}/HandleAsync] Handling {nameof(CreateRegistrationCommand)}");
 
+            // Here is the registration created in the database
             await InstantiateAsync(() => Created, () => _mapper.Map<RegistrationData>(message));
             _messagePublisher.Publish();
         }

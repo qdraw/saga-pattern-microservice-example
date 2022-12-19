@@ -42,6 +42,8 @@ namespace ACME.API.Registration.Controllers
                 registration.CorrelationId = Guid.NewGuid();
             }
             
+            // send message to queue with CreateRegistrationCommand
+            // go to ./Sagas/RegistrationSaga.cs and CreateRegistrationCommand
             await _queueRegistrationService.CreateRegistration(registration);
 
             Response.StatusCode = (int)System.Net.HttpStatusCode.Accepted;
