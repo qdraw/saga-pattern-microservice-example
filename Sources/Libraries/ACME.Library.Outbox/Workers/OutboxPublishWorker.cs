@@ -26,7 +26,7 @@ namespace ACME.Library.Outbox.Workers
                 {
                     await _waitHandle.WaitAsync(stoppingToken).ConfigureAwait(false);
                 }
-                catch (TaskCanceledException e)
+                catch (TaskCanceledException)
                 {
                 }
                 

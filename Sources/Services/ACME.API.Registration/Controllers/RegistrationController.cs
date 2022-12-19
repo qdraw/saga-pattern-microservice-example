@@ -1,16 +1,10 @@
-﻿using FluentValidation;
-using Microsoft.AspNetCore.Mvc;
-using ACME.API.Registration.Models;
+﻿using Microsoft.AspNetCore.Mvc;
 using ACME.API.Registration.Services.Interfaces;
-using ACME.Library.Common.Helpers;
 using ACME.Library.Common.Models.Api;
-using ACME.Library.Domain.Enums.Registration;
 using ACME.Library.RabbitMq.Messages.Registration;
 using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
 using ACME.Library.Domain.Registration;
-using ACME.Library.RabbitMq.Messages.Registration;
 
 namespace ACME.API.Registration.Controllers
 {
