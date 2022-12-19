@@ -87,9 +87,9 @@ mkdir -p ThirdParty/services/rabbitmq/etc
 if [ ${#SERVICES_TO_BUILD[@]} -eq 0 ]; 
 then
     echo "build all services "$NO_CACHE_ARG" "$UNIT_TEST_RUN_ARG
-    docker compose build $PROGRESS_LOGGER_ARG ACME.API.Registration $NO_CACHE_ARG $UNIT_TEST_RUN_ARG
+    docker compose build $PROGRESS_LOGGER_ARG acme.api.registration $NO_CACHE_ARG $UNIT_TEST_RUN_ARG
     docker compose build $PROGRESS_LOGGER_ARG acme.identity $NO_CACHE_ARG $UNIT_TEST_RUN_ARG
-    docker compose build $PROGRESS_LOGGER_ARG ACME.API.Notifications $NO_CACHE_ARG $UNIT_TEST_RUN_ARG
+    docker compose build $PROGRESS_LOGGER_ARG acme.api.notifications $NO_CACHE_ARG $UNIT_TEST_RUN_ARG
 
     echo "up everything"
     docker-compose --env-file .env -f docker-compose.yml up --timeout 1000 --detach --remove-orphans
@@ -101,8 +101,8 @@ else
         then
             SERVICE_NAME_LOWER_CASE=$(echo "$SERVICE_NAME" | tr '[:upper:]' '[:lower:]')
             
-            if [[ $SERVICE_NAME_LOWER_CASE == "sto.ids" ]]; then
-                SERVICE_NAME_LOWER_CASE="sto.identity"
+            if [[ $SERVICE_NAME_LOWER_CASE == "acme.ids" ]]; then
+                SERVICE_NAME_LOWER_CASE="acme.identity"
             fi
             
             echo "build "$SERVICE_NAME_LOWER_CASE" service "$NO_CACHE_ARG" "$UNIT_TEST_RUN_ARG

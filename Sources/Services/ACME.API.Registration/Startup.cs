@@ -61,11 +61,10 @@ namespace ACME.API.Registration
 
             // Message Broker Registration
             services.AddRabbitMq(Configuration.GetConnectionString("RabbitMqConnection"), new DefaultDeadLetterConfiguration());
-
+            
             // Transactional Outbox Registration
             services.AddScoped<IOutboxRepository, RegistrationOutboxRepository>();
             services.RegisterEntityFrameworkOutboxPublisher();
-            
             services.RegisterOutboxPublishWorker();
 
             // SAGA Registration

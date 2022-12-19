@@ -40,10 +40,8 @@ namespace ACME.Library.Saga
                         await SubscribeOnMessage(messageType);
                         return true;
                     }
-
-                    await Subscribe();
-                    //todo fix reference
-                    // await ACME.Library.Common.Helpers.RetryHelper.DoAsync(Subscribe,TimeSpan.FromSeconds(15));
+                    
+                    await Common.Helpers.RetryHelper.DoAsync(Subscribe,TimeSpan.FromSeconds(15));
                 }
             }
         }

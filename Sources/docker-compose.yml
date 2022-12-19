@@ -42,10 +42,8 @@ services:
     volumes:
       - './_setup/certs:/app/certs' # not read only
     environment:
-      - ASPNETCORE_URLS=https://+:9443;http://+:8080
+      - ASPNETCORE_URLS=http://+:8080
       - ASPNETCORE_ENVIRONMENT=Development
-      - VIRTUAL_PROTO=https
-      - VIRTUAL_PORT=9443
     ports:
       - "${IDENTITY_PORT}:8080"
     depends_on:
@@ -54,7 +52,7 @@ services:
     networks:
       internalnetwork: null
 
-  ACME.API.Registration:
+  acme.api.registration:
     image: ${DOCKER_REGISTRY-}acmeapiregistration
     build:
       context: .
@@ -72,7 +70,7 @@ services:
     networks:
       internalnetwork: null
 
-  ACME.API.Notifications:
+  acme.api.notifications:
     image: ${DOCKER_REGISTRY-}acmeapinotifications
     build:
       context: .
@@ -83,11 +81,11 @@ services:
       - ASPNETCORE_URLS=http://+:8080
       - ASPNETCORE_ENVIRONMENT=Development
     ports:
-      - "${REGISTRATION_PORT}:8080"
+      - "${NOTIFICATIONS_PORT}:8080"
     depends_on:
       - acme.sqlserver
       - acme.rabbitmq
-      - ACME.API.Registration
+      - acme.api.registration
     networks:
       internalnetwork: null
 
