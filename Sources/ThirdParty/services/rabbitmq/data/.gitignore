@@ -1,0 +1,4 @@
+mnesia/*
+!mnesia/.gitkeep
+.ash_history
+.erlang.cookie

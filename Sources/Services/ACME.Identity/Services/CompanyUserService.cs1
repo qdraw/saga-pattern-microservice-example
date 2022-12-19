@@ -1,0 +1,140 @@
+﻿#nullable enable
+using AutoMapper;
+using Microsoft.Extensions.DependencyInjection;
+using STO.API.Users.Exceptions;
+using STO.API.Users.Repositories.Interfaces;
+using STO.API.Users.Services.Interfaces;
+using STO.Identity.Services.Interfaces;
+using STO.Library.Domain.Models.Core;
+using STO.Library.Domain.Models.Users;
+using STO.Library.RabbitMq.Messages.Companies;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace STO.Identity.Services
+{
+    public class CompanyUserService : ICompanyUserService
+    {
+        private readonly IUserRepository _userRepository;
+        private readonly IMapper _mapper;
+        private readonly ICompanyNamesService _companyNamesService;
+        private readonly IUserService _userService;
+
+        public CompanyUserService(IUserRepository userRepository, IMapper mapper, ICompanyNamesService companyNamesService, IUserService userService)
+        {
+            _userRepository = userRepository;
+            _mapper = mapper;
+            _companyNamesService = companyNamesService;
+            _userService = userService;
+        }
+
+        public async Task<CompanyUserRoleResponse> GetValidCompanyUserRoles(Guid userId, string inputCompanyCode)
+        {
+            if (string.IsNullOrWhiteSpace(inputCompanyCode))
+            {
+                throw new NotFoundException<CompanyUserRoleResponse>($"userId: {userId}, inputCompanyCode is null");
+            }
+
+            var companyUserRoles = await GetActiveCompanyUserRoles(userId);
+            var companyUserRole = companyUserRoles.FirstOrDefault(c => c.CompanyCode == inputCompanyCode);
+
+            if (companyUserRole == null)
+            {
+                throw new NotFoundException<CompanyUserRoleResponse>($"userId: {userId}, inputCompanyCode: {inputCompanyCode}");
+            }
+            
+            return companyUserRole;
+        }
+        
+        public async Task<List<CompanyUserRole>> GetCompanyUserRoles(Guid userId, string? companyCode)
+        {
+            return companyCode == null ? new List<CompanyUserRole>() : (await GetCompanyUserRoles(userId))
+                .Where(p => p.CompanyCode == companyCode).ToList();
+        }
+
+        public async Task<List<CompanyUserRole>> GetCompanyUserRoles(Guid userId)
+        {
+            var companyUserRoles = await _userRepository.GetCompanyUserRoles(userId);
+            if (companyUserRoles == null || !companyUserRoles.Any())
+            {
+                throw new NotFoundException<CompanyUserRole>(userId.ToString());
+            }
+
+            return companyUserRoles;
+        }
+
+        public async Task<CompanyUserRoleEntity> AddNewCompanyUserRole(CompanyUserRoleEntity companyUserRole)
+        {
+            return await _userRepository.AddNewCompanyUserRole(companyUserRole);
+        }
+
+        public async Task<CompanyUserRoleEntity> UpdateCompanyUserRole(CompanyUserRoleEntity companyUserRole)
+        {
+            return await _userRepository.UpdateCompanyUserRole(companyUserRole);
+        }
+        
+        public async Task<List<GetCompaniesResponse>> GetCompaniesByUserId(Guid userId)
+        {
+            var companiesCodeList = _userRepository.GetCompaniesByUserId(userId);
+            if (companiesCodeList == null || !companiesCodeList.Any())
+            {
+                throw new NotFoundException<List<string>>(userId.ToString());
+            }
+
+            var companies = new List<GetCompaniesResponse>();
+            foreach (var companyCode in companiesCodeList)
+            {
+                companies.Add(await _companyNamesService.GetCurrentCompany(companyCode));
+            }
+
+            return companies;
+        }
+
+        public async Task<List<CompanyUserRoleResponse>> GetActiveCompanyUserRoles(Guid userId)
+        {
+            var companyUserRoles = await GetCompanyUserRoles(userId);
+            var companyCodes = companyUserRoles.Where(c => c.IsValid).Select(p => p.CompanyCode).Distinct();
+
+            var companyUserRoleResponses = new List<CompanyUserRoleResponse>();
+            foreach (var companyCode in companyCodes)
+            {
+                var companyUserRoleResponse = _mapper.Map<CompanyUserRoleResponse>(companyUserRoles.FirstOrDefault(p => p.CompanyCode == companyCode));
+                companyUserRoleResponse.CompanyUserRoleTypes = companyUserRoles
+                    .Where(p => p.CompanyCode == companyCode && p.IsValid)
+                    .Select(p => p.CompanyRole).ToList();
+
+                companyUserRoleResponses.Add(companyUserRoleResponse);
+            }
+            return companyUserRoleResponses;
+        }
+
+        public async Task<List<CompanyUser>> GetCompanyUsers(string companyCode)
+        {
+            var response = new List<CompanyUser>();
+            var companyUserRoles = await _userRepository.GetUsersByCompanyCode(companyCode);
+
+            if(companyUserRoles == null || !companyUserRoles.Any())
+            {
+                throw new NotFoundException<CompanyUserRole>($"Found no users/roles for company: {companyCode}");
+            }
+
+            foreach(var userId in companyUserRoles.Select(x => x.UserId).Distinct())
+            {
+                var user = await _userService.GetUserAsync(userId);
+
+                if(user != null)
+                {
+                    response.Add(new CompanyUser
+                    {
+                        User = user,
+                        Roles = companyUserRoles.Where(x => x.UserId == userId).ToList()
+                    });
+                }
+            }
+
+            return response;
+        }
+    }
+}

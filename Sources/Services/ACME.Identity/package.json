@@ -1,0 +1,13 @@
+{
+    "name": "client",
+    "description": "Keep this file here for the azure pipeline",
+    "version": "0.1.0",
+    "private": true,
+    "scripts": {
+        "preinstall": "npm install -g pnpm &&  cd ClientApp && pnpm run preinstall && pnpm install",
+        "dev": "cd ClientApp && pnpm dev",
+        "build": "cd ClientApp && pnpm build",
+        "start": "cd ClientApp && pnpm start",
+        "lint": "cd ClientApp && pnpm lint"
+    }
+}

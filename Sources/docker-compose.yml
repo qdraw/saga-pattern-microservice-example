@@ -1,0 +1,101 @@
+version: '3.4'
+
+services:
+  acme.rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: acme-rabbitmq
+    hostname: acme-rabbitmq
+    volumes:
+      - ./ThirdParty/services/rabbitmq/etc/:/etc/rabbitmq/
+      - ./ThirdParty/services/rabbitmq/data/mnesia:/var/lib/rabbitmq/mnesia
+      - ./ThirdParty/services/rabbitmq/logs/:/var/log/rabbitmq/
+    environment:
+      RABBITMQ_ERLANG_COOKIE: ${RABBITMQ_ERLANG_COOKIE}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+    ports:
+      - "${RABBIT_MQ_CONNECTION}:5672"
+      - "${RABBIT_MQ_MANAGEMENT}:15672"
+
+  acme.sqlserver:
+    image: mcr.microsoft.com/azure-sql-edge:latest
+    hostname: acme-sql-server
+    container_name: acme-sql-server
+    user: root
+    ports:
+      - "${SQL_PORT}:1433"
+    volumes:
+      - acmesqldata:/var/opt/mssql/data
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=${SQL_SA_PASSWORD}
+      - MSSQL_PID=Developer
+    networks:
+      internalnetwork: null
+
+  acme.identity:
+    image: ${DOCKER_REGISTRY-}acmeidentity
+    build:
+      context: .
+      network: host
+      dockerfile: Services/ACME.Identity/Dockerfile
+    volumes:
+      - './_setup/certs:/app/certs' # not read only
+    environment:
+      - ASPNETCORE_URLS=https://+:9443;http://+:8080
+      - ASPNETCORE_ENVIRONMENT=Development
+      - VIRTUAL_PROTO=https
+      - VIRTUAL_PORT=9443
+    ports:
+      - "${IDENTITY_PORT}:8080"
+    depends_on:
+      - acme.sqlserver
+      - acme.rabbitmq
+    networks:
+      internalnetwork: null
+
+  ACME.API.Registration:
+    image: ${DOCKER_REGISTRY-}acmeapiregistration
+    build:
+      context: .
+      dockerfile: Services/ACME.API.Registration/Dockerfile
+    volumes:
+      - './_setup/certs:/app/certs:ro'
+    environment:
+      - ASPNETCORE_URLS=http://+:8080
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "${REGISTRATION_PORT}:8080"
+    depends_on:
+      - acme.sqlserver
+      - acme.rabbitmq
+    networks:
+      internalnetwork: null
+
+  ACME.API.Notifications:
+    image: ${DOCKER_REGISTRY-}acmeapinotifications
+    build:
+      context: .
+      dockerfile: Services/ACME.API.Notifications/Dockerfile
+    volumes:
+      - './_setup/certs:/app/certs:ro'
+    environment:
+      - ASPNETCORE_URLS=http://+:8080
+      - ASPNETCORE_ENVIRONMENT=Development
+    ports:
+      - "${REGISTRATION_PORT}:8080"
+    depends_on:
+      - acme.sqlserver
+      - acme.rabbitmq
+      - ACME.API.Registration
+    networks:
+      internalnetwork: null
+
+networks:
+  proxy:
+    driver: bridge
+  internalnetwork:
+    driver: bridge
+
+volumes:
+  acmesqldata:
